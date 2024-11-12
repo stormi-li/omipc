@@ -20,12 +20,12 @@ func (l *Lock) Lock() {
 	for {
 		var ok bool
 		//尝试占有锁-----------------------------------------redis代码
-		ok, _ = l.redisClient.SetNX(l.ctx, l.lockName, l.uuid, const_exipireTime*time.Second).Result()
+		ok, _ = l.redisClient.SetNX(l.ctx, l.lockName, l.uuid, lock_expire_time*time.Second).Result()
 
 		if ok {
 			//看门口协程
 			go func() {
-				ticker := time.NewTicker(const_watchdogInterval)
+				ticker := time.NewTicker(watchdog_interval)
 				defer ticker.Stop()
 				for {
 					select {
@@ -40,7 +40,7 @@ func (l *Lock) Lock() {
 			break
 		} else {
 			//阻塞三秒，阻塞时可以被唤醒
-			l.omipcClient.Wait(l.lockName, const_blockingTime)
+			l.omipcClient.Wait(l.lockName, block_wait_time)
 		}
 	}
 }
@@ -74,7 +74,7 @@ func (l *Lock) updateExpiryIfValueMatches() (bool, error) {
         end
     `
 	//执行lua脚本-----------------------------------------redis代码
-	result, err := l.redisClient.Eval(l.ctx, script, []string{l.lockName}, l.uuid, const_exipireTime).Result()
+	result, err := l.redisClient.Eval(l.ctx, script, []string{l.lockName}, l.uuid, lock_expire_time).Result()
 	if err != nil {
 		return false, err
 	}

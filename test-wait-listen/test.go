@@ -12,8 +12,8 @@ var redisAddr = "118.25.196.166:3934"
 var password = "12982397StrongPassw0rd"
 
 func main() {
-	go wait()
 	listen()
+	wait()
 }
 
 func wait() {
@@ -26,9 +26,8 @@ func wait() {
 
 func listen() {
 	omipc := omipc.NewClient(&redis.Options{Addr: redisAddr, Password: password})
-	l := omipc.NewListener()
-	l.AddHandler(func(msg string) {
-		fmt.Println(msg)
+	omipc.Listen("notifyall", func(message string) bool {
+		fmt.Println(message)
+		return true
 	})
-	l.Listen("notifyall")
 }

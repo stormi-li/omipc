@@ -2,6 +2,6 @@ package omipc
 
 import "time"
 
-const const_exipireTime = 15
-const const_watchdogInterval = 5 * time.Second
-const const_blockingTime = 5 * time.Second
+const lock_expire_time = 6
+const watchdog_interval = 2 * time.Second
+const block_wait_time = 3 * time.Second

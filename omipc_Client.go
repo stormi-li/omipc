@@ -2,6 +2,7 @@ package omipc
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -13,11 +14,18 @@ type Client struct {
 	ctx         context.Context
 }
 
-func NewOmipc(redisClient *redis.Client) *Client {
-	return &Client{
-		redisClient: redisClient,
-		ctx:         context.Background(),
-	}
+func (c *Client) Listen(channel string, handler func(message string) bool) {
+	sub := c.redisClient.Subscribe(c.ctx, channel)
+	msgChan := sub.Channel()
+	go func() {
+		defer sub.Close()
+		for {
+			if !handler(c.wait(msgChan, 0)) {
+				break
+			}
+		}
+		fmt.Println("close")
+	}()
 }
 
 func (c *Client) Notify(channel, msg string) {
@@ -26,10 +34,12 @@ func (c *Client) Notify(channel, msg string) {
 
 func (c *Client) Wait(channel string, timeout time.Duration) string {
 	sub := c.redisClient.Subscribe(c.ctx, channel)
-
-	msgChan := sub.Channel()
 	defer sub.Close()
+	msgChan := sub.Channel()
+	return c.wait(msgChan, timeout)
+}
 
+func (c *Client) wait(msgChan <-chan *redis.Message, timeout time.Duration) string {
 	if timeout == 0 {
 		msg := <-msgChan
 		return msg.Payload
@@ -43,13 +53,6 @@ func (c *Client) Wait(channel string, timeout time.Duration) string {
 		return ""
 	case msg := <-msgChan:
 		return msg.Payload
-	}
-}
-
-func (c *Client) NewListener() *Listener {
-	return &Listener{
-		shutdown:    make(chan struct{}, 1),
-		redisClient: c.redisClient,
 	}
 }
 
