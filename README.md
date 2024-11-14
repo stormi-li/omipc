@@ -63,3 +63,83 @@ func main() {
 	}
 }
 ```
+### 监听广播
+```go
+package main
+
+import (
+	"strconv"
+
+	"github.com/go-redis/redis/v8"
+	omipc "github.com/stormi-li/omipc-v1"
+)
+
+func main() {
+	omipc := omipc.NewClient(&redis.Options{Addr: "localhost:6379"})
+	closed := omipc.Listen("channel", func(message string) bool {
+		fmt.Println(message)
+		return message != "close"
+	})
+	<-closed
+}
+```
+### 发送广播
+```go
+package main
+
+import (
+	"strconv"
+
+	"github.com/go-redis/redis/v8"
+	omipc "github.com/stormi-li/omipc-v1"
+)
+
+func main() {
+	omipc := omipc.NewClient(&redis.Options{Addr: "localhost:6379"})
+	for i := 0; i < 10; i++ {
+		omipc.Notify("channel", strconv.Itoa(i))
+	}
+	omipc.Notify("channel", "close")
+}
+```
+### 使用分布式锁
+```go
+package main
+
+import (
+	"log"
+	"time"
+
+	"github.com/go-redis/redis/v8"
+	omipc "github.com/stormi-li/omipc-v1"
+)
+
+func main() {
+	go process1()
+	process2()
+}
+
+func process1() {
+	l := omipc.NewClient(&redis.Options{Addr: "localhost:6379"}).NewLock("lock")
+	for {
+		l.Lock()
+		log.Println("process1占有锁")
+		time.Sleep(1 * time.Second)
+		l.Unlock()
+		log.Println("process1释放锁")
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func process2() {
+	l := omipc.NewClient(&redis.Options{Addr: "localhost:6379"}).NewLock("lock")
+	for {
+		l.Lock()
+		log.Println("process2占有锁")
+		time.Sleep(1 * time.Second)
+		l.Unlock()
+		log.Println("process2释放锁")
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+```
