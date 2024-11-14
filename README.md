@@ -34,7 +34,7 @@ import (
 func main() {
 	c := omipc.NewClient(&redis.Options{Addr: "localhost:6379"})
 	consumer := c.NewConsumer("queue_demo", 100000, 1)
-	consumer.ListenAndConsume("118.25.196.166:5555", func(message []byte) {
+	consumer.ListenAndConsume("localhost:5555", func(message []byte) {
 		fmt.Println(string(message))
 	})
 }
